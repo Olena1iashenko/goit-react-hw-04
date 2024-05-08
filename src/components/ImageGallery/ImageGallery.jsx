@@ -9,7 +9,7 @@ export const ImageGallery = ({ images, openModal }) => {
   return (
     <ul className={s.list}>
       {images.map((image) => (
-        <ImageCard key={image.id} image={image} onclick={openModal} />
+        <ImageCard key={image.id} image={image} onClick={openModal} />
       ))}
     </ul>
   );
