@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import SearchBar from "./components/SearchBar/SearchBar";
 import ImageGallery from "./components/ImageGallery/ImageGallery";
 import Loader from "./components/Loader/Loader";
 import ErrorMessage from "./components/ErrorMessage/ErrorMessage";
 import LoadMoreBtn from "./components/LoadMoreBtn/LoadMoreBtn";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import ImageModal from "./components/ImageModal/ImageModal";
 
 export default function App() {
@@ -17,34 +18,10 @@ export default function App() {
   const [error, setError] = useState("");
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState("");
+  const [hasMoreImages, setHasMoreImages] = useState(true);
+  // const [searchQuery, setSearchQuery] = useState("");
 
   const accessKey = "8RLSWco7mGuYlLvfbXC7LqXQOFQ5deRwg2Q9xby70_o";
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      // if (!query) return;
-      setIsLoading(true);
-      setError("No images to fetch");
-      try {
-        const response = await axios.get(
-          `https://api.unsplash.com/search/photos?query=${query}&page=${page}&client_id=${accessKey}`
-        );
-        setImages((prev) =>
-          page === 1
-            ? [...response.data.results]
-            : [...prev, ...response.data.results]
-        );
-      } catch (error) {
-        setError(toast.error("Error loading images!"));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (query !== "") {
-      fetchImages();
-    }
-  }, [query, page]);
 
   const handleSubmit = async (searchQuery) => {
     if (!searchQuery.trim()) {
@@ -56,7 +33,37 @@ export default function App() {
     setError("");
     setQuery(searchQuery);
     setPage(1);
+    // setSearchQuery("");
   };
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const response = await axios.get(
+          `https://api.unsplash.com/search/photos?query=${query}&page=${page}&client_id=${accessKey}`
+        );
+        if (response.data.results.length === 0) {
+          setHasMoreImages(false);
+          return toast.info("No more images to load");
+        }
+        setImages((prev) =>
+          page === 1
+            ? [...response.data.results]
+            : [...prev, ...response.data.results]
+        );
+      } catch (error) {
+        setError();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (query !== "") {
+      fetchImages();
+    }
+  }, [query, page]);
 
   const handleLoadMore = () => {
     setPage((prevPage) => prevPage + 1);
@@ -73,15 +80,25 @@ export default function App() {
 
   return (
     <div>
-      <SearchBar onSubmit={handleSubmit} />
-      {isLoading && <Loader />}
+      <SearchBar
+        onSubmit={handleSubmit}
+        // value={searchQuery}
+        // onChange={setSearchQuery}
+      />
       {error && <ErrorMessage message={error} />}
       {images.length > 0 && (
         <ImageGallery images={images} openModal={openModal} />
       )}
-      {images.length > 0 && <LoadMoreBtn onClick={handleLoadMore} />}
+      {isLoading && <Loader />}
+      {images.length > 0 && hasMoreImages && (
+        <LoadMoreBtn onClick={handleLoadMore} />
+      )}
       {modalIsOpen && (
-        <ImageModal onClose={closeModal} imageUrl={selectedImage} />
+        <ImageModal
+          isOpen={modalIsOpen}
+          onClose={closeModal}
+          imageUrl={selectedImage}
+        />
       )}
     </div>
   );
